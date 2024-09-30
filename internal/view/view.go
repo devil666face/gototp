@@ -30,7 +30,7 @@ var (
 )
 
 var ErrorFunc func(err error) = func(err error) {
-	fmt.Printf(err.Error() + "\r\n")
+	fmt.Printf("⚠️ " + err.Error() + "\r\n")
 }
 
 func RunSelect(
@@ -47,10 +47,10 @@ func RunSelect(
 }
 
 const (
-	show   = "show"
-	code   = "code"
-	add    = "add"
-	delete = "delete"
+	show   = "#️⃣  show"
+	code   = "🔑 code"
+	add    = "🆕 add"
+	delete = "❌ delete"
 )
 
 var (
@@ -86,6 +86,9 @@ func (v *View) SelectCode(title string) (int, error) {
 		strid string
 		opts  []huh.Option[string]
 	)
+	if len(v.gototp.Data.Keystore.Keys) == 0 {
+		return -1, fmt.Errorf("keys not created")
+	}
 	for id, f := range v.gototp.Data.Keystore.Keys {
 		opts = append(opts, huh.NewOption[string](f.Name, fmt.Sprint(id)))
 	}
@@ -110,7 +113,7 @@ func (v *View) Run() {
 				huh.NewOption[string](delete, delete),
 			}
 		)
-		if err := RunSelect("select action ", opts, &action); err != nil {
+		if err := RunSelect("🔐 gototp ", opts, &action); err != nil {
 			if errors.Is(err, huh.ErrUserAborted) {
 				return
 			}
@@ -146,7 +149,7 @@ func (v *View) Run() {
 					Render(sb.String()),
 			)
 		case code:
-			id, err := v.SelectCode("generate code ")
+			id, err := v.SelectCode("🔑 generate code ")
 			if err != nil {
 				ErrorFunc(err)
 				continue
@@ -204,7 +207,7 @@ func (v *View) Run() {
 				ErrorFunc(err)
 				continue
 			}
-			fmt.Printf("%s - created\r\n", input.Name)
+			fmt.Printf("✅ %s - created\r\n", input.Name)
 		case delete:
 		}
 	}

@@ -26,16 +26,6 @@ type Keystore struct {
 	Keys []Key
 }
 
-// func (k *Keystore) Add(
-//
-//	name,
-//	period,
-//	digit,
-//	algorithm,
-//	secret string,
-//
-// ) {
-
 type Input struct {
 	Name      string
 	Period    string
@@ -57,6 +47,15 @@ func (k *Keystore) Add(input Input) {
 		// algorithm,
 		// secret,
 	))
+}
+
+func (k *Keystore) Delete(id int) error {
+	if id < 0 || id >= len(k.Keys) {
+		return fmt.Errorf("index out of range %d", len(k.Keys))
+	}
+	k.Keys = append(k.Keys[:id], k.Keys[id+1:]...)
+	return nil
+
 }
 
 type Key struct {

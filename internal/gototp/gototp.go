@@ -1,10 +1,13 @@
 package gototp
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"gototp/internal/config"
+	"gototp/internal/crypt"
 	"gototp/internal/database"
 	"gototp/internal/models"
+	"io"
 )
 
 type Gototp struct {
@@ -13,12 +16,25 @@ type Gototp struct {
 	storage *database.Storage
 }
 
-func New() (*Gototp, error) {
+func GenHash(input string) []byte {
+	h := sha256.New()
+	io.WriteString(h, input)
+	return h.Sum(nil)
+}
+
+func New(_passphrase string) (*Gototp, error) {
+	cryptor, err := crypt.New(GenHash(_passphrase))
+	if err != nil {
+		return nil, fmt.Errorf("failed to init key: %w", err)
+	}
 	_config, err := config.New()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
-	_storage, err := database.New(_config.Database)
+	_storage, err := database.New(
+		_config.Database,
+		cryptor,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load database: %w", err)
 	}

@@ -4,46 +4,57 @@ import (
 	"errors"
 	"fmt"
 	"gototp/internal/gototp"
-	"gototp/internal/models"
+	"os"
 	"strconv"
-	"strings"
-	"text/tabwriter"
 
 	"github.com/charmbracelet/huh"
-	"github.com/charmbracelet/lipgloss"
+
 	"github.com/pquerna/otp"
+)
+
+var (
+	strValidator = func(in string) error {
+		if in == "" {
+			return fmt.Errorf("⚠️  value is empty")
+		}
+		return nil
+	}
+	numValidator = func(in string) error {
+		if _, err := strconv.Atoi(in); err != nil {
+			return fmt.Errorf("⚠️  value must be digit")
+		}
+		return nil
+	}
 )
 
 type View struct {
 	gototp *gototp.Gototp
 }
 
-func New(_gototp *gototp.Gototp) *View {
+func New() *View {
+	var passphrase string
+	form := InputForm(
+		"*️⃣  enter your secret", "",
+		strValidator,
+		&passphrase,
+	)
+	if err := form.Run(); err != nil {
+		if !errors.Is(err, huh.ErrUserAborted) {
+			ErrorFunc(err)
+		}
+		os.Exit(0)
+	}
+
+	_gototp, err := gototp.New(passphrase)
+	if err != nil {
+		ErrorFunc(err)
+		os.Exit(1)
+	}
+
 	v := View{
 		gototp: _gototp,
 	}
 	return &v
-}
-
-var (
-	base16 *huh.Theme = huh.ThemeBase16()
-)
-
-var ErrorFunc func(err error) = func(err error) {
-	fmt.Printf("⚠️ " + err.Error() + "\r\n")
-}
-
-func RunSelect(
-	title string,
-	opts []huh.Option[string],
-	value *string,
-) error {
-	s := huh.NewSelect[string]().
-		Title(title).
-		Options(opts...).
-		Value(value).
-		WithTheme(base16)
-	return huh.NewForm(huh.NewGroup(s)).Run()
 }
 
 const (
@@ -52,6 +63,13 @@ const (
 	add    = "🆕 add"
 	delete = "❌ delete"
 )
+
+var mainopts = []huh.Option[string]{
+	huh.NewOption[string](show, show),
+	huh.NewOption[string](code, code),
+	huh.NewOption[string](add, add),
+	huh.NewOption[string](delete, delete),
+}
 
 var (
 	algorithmops = huh.NewOptions[string](
@@ -66,21 +84,6 @@ var (
 	)
 )
 
-var (
-	strValidator = func(in string) error {
-		if in == "" {
-			return fmt.Errorf("value is empty")
-		}
-		return nil
-	}
-	numValidator = func(in string) error {
-		if _, err := strconv.Atoi(in); err != nil {
-			return fmt.Errorf("value must be digit")
-		}
-		return nil
-	}
-)
-
 func (v *View) SelectCode(title string) (int, error) {
 	var (
 		strid string
@@ -92,7 +95,8 @@ func (v *View) SelectCode(title string) (int, error) {
 	for id, f := range v.gototp.Data.Keystore.Keys {
 		opts = append(opts, huh.NewOption[string](f.Name, fmt.Sprint(id)))
 	}
-	if err := RunSelect(title, opts, &strid); err != nil {
+	form := SelectForm(title, opts, &strid)
+	if err := form.Run(); err != nil {
 		return -1, err
 	}
 	id, err := strconv.Atoi(strid)
@@ -104,16 +108,9 @@ func (v *View) SelectCode(title string) (int, error) {
 
 func (v *View) Run() {
 	for {
-		var (
-			action string
-			opts   = []huh.Option[string]{
-				huh.NewOption[string](show, show),
-				huh.NewOption[string](code, code),
-				huh.NewOption[string](add, add),
-				huh.NewOption[string](delete, delete),
-			}
-		)
-		if err := RunSelect("🔐 gototp ", opts, &action); err != nil {
+		var action string
+		form := SelectForm("🔐 gototp ", mainopts, &action)
+		if err := form.Run(); err != nil {
 			if errors.Is(err, huh.ErrUserAborted) {
 				return
 			}
@@ -122,94 +119,30 @@ func (v *View) Run() {
 		}
 		switch action {
 		case show:
-			var (
-				sb strings.Builder
-				w  = tabwriter.NewWriter(&sb, 1, 1, 1, ' ', 0)
-			)
-			if len(v.gototp.Data.Keystore.Keys) == 0 {
-				ErrorFunc(fmt.Errorf("keys not created"))
+			if err := v.show(); err != nil {
+				ErrorFunc(err)
 				continue
 			}
-			fmt.Fprintf(w, "#\t%s\t%s\t%s\t%s", "name", "period", "digits", "algorithm")
-			for i, v := range v.gototp.Data.Keystore.Keys {
-				fmt.Fprintf(
-					w,
-					"\n%d\t%s\t%d\t%s\t%s",
-					i+1,
-					v.Name,
-					v.Period,
-					v.Digits,
-					v.Algorithm,
-				)
-			}
-			w.Flush()
-			fmt.Println(
-				lipgloss.NewStyle().
-					Padding(0, 1).
-					Render(sb.String()),
-			)
 		case code:
-			id, err := v.SelectCode("🔑 generate code ")
-			if err != nil {
+			if err := v.code(); err != nil {
 				ErrorFunc(err)
 				continue
 			}
-			key := v.gototp.Data.Keystore.Keys[id]
-			otpcode, err := key.GenCode()
-			if err != nil {
-				ErrorFunc(err)
-				continue
-			}
-			fmt.Println(otpcode)
 		case add:
-			var (
-				input = models.Input{}
-			)
-			form := huh.NewForm(
-				huh.NewGroup(
-					huh.NewInput().
-						Title("name ").
-						Prompt("> ").
-						Validate(strValidator).
-						Value(&input.Name).
-						Placeholder(""),
-					huh.NewInput().
-						Title("update period ").
-						Prompt("> ").
-						Validate(numValidator).
-						Value(&input.Period).
-						Placeholder("30"),
-					huh.NewSelect[string]().
-						Title("set digits ").
-						Options(digitopts...).
-						Value(&input.Digit),
-					huh.NewSelect[string]().
-						Title("algorithm ").
-						Options(algorithmops...).
-						Value(&input.Algorithm),
-					huh.NewInput().
-						Title("secret ").
-						Prompt("> ").
-						Validate(strValidator).
-						Value(&input.Secret).
-						Placeholder(""),
-				).WithTheme(base16),
-			)
-			if err := form.Run(); err != nil {
+			if err := v.add(); err != nil {
 				if errors.Is(err, huh.ErrUserAborted) {
 					continue
 				}
 				ErrorFunc(err)
-				continue
+
 			}
-			v.gototp.Data.Keystore.Add(input)
-			if err := v.gototp.Save(); err != nil {
-				ErrorFunc(err)
-				continue
-			}
-			fmt.Printf("✅ %s - created\r\n", input.Name)
 		case delete:
+			if err := v.delete(); err != nil {
+				if errors.Is(err, huh.ErrUserAborted) {
+					continue
+				}
+				ErrorFunc(err)
+			}
 		}
 	}
-
 }

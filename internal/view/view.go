@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"gototp/internal/gototp"
+	"gototp/pkg/fs"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/charmbracelet/huh"
 
@@ -58,17 +60,21 @@ func New() *View {
 }
 
 const (
-	show   = "#️⃣  show"
-	code   = "🔑 code"
-	add    = "🆕 add"
-	delete = "❌ delete"
+	_show   = "#️⃣  show"
+	_code   = "🔑 code"
+	_add    = "🆕 add"
+	_delete = "❌ delete"
+	_export = "💾 export"
+	_import = "📥 import"
 )
 
 var mainopts = []huh.Option[string]{
-	huh.NewOption[string](show, show),
-	huh.NewOption[string](code, code),
-	huh.NewOption[string](add, add),
-	huh.NewOption[string](delete, delete),
+	huh.NewOption[string](_show, _show),
+	huh.NewOption[string](_code, _code),
+	huh.NewOption[string](_add, _add),
+	huh.NewOption[string](_delete, _delete),
+	huh.NewOption[string](_export, _export),
+	huh.NewOption[string](_import, _import),
 }
 
 var (
@@ -106,6 +112,34 @@ func (v *View) SelectCode(title string) (int, error) {
 	return id, nil
 }
 
+func (v *View) SelectLocalFile(title string, suffix ...string) (string, error) {
+	var (
+		file   string
+		opts   []huh.Option[string]
+		sorted []string
+	)
+	files, err := fs.FilesInCurrentDir()
+	if err != nil {
+		return "", err
+	}
+	if len(suffix) == 1 {
+		for _, file := range files {
+			if strings.HasSuffix(file, suffix[0]) {
+				sorted = append(sorted, file)
+			}
+		}
+		files = sorted
+	}
+	for _, f := range files {
+		opts = append(opts, huh.NewOption[string](f, f))
+	}
+	form := SelectForm(title, opts, &file)
+	if err := form.Run(); err != nil {
+		return "", err
+	}
+	return file, nil
+}
+
 func (v *View) Run() {
 	for {
 		var action string
@@ -118,26 +152,39 @@ func (v *View) Run() {
 			continue
 		}
 		switch action {
-		case show:
+		case _show:
 			if err := v.show(); err != nil {
 				ErrorFunc(err)
 				continue
 			}
-		case code:
+		case _code:
 			if err := v.code(); err != nil {
 				ErrorFunc(err)
 				continue
 			}
-		case add:
+		case _add:
 			if err := v.add(); err != nil {
 				if errors.Is(err, huh.ErrUserAborted) {
 					continue
 				}
 				ErrorFunc(err)
-
 			}
-		case delete:
+		case _delete:
 			if err := v.delete(); err != nil {
+				if errors.Is(err, huh.ErrUserAborted) {
+					continue
+				}
+				ErrorFunc(err)
+			}
+		case _import:
+			if err := v.importa(); err != nil {
+				if errors.Is(err, huh.ErrUserAborted) {
+					continue
+				}
+				ErrorFunc(err)
+			}
+		case _export:
+			if err := v.export(); err != nil {
 				if errors.Is(err, huh.ErrUserAborted) {
 					continue
 				}

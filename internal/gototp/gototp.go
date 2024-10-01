@@ -53,6 +53,10 @@ func (g *Gototp) Save() error {
 	return g.storage.Save(g.Data)
 }
 
+func (g *Gototp) SaveFile(key *models.Key) error {
+	return g.storage.SaveFile(key)
+}
+
 func (g *Gototp) Load() error {
 	_data, err := g.storage.Load()
 	if err != nil {
@@ -60,4 +64,8 @@ func (g *Gototp) Load() error {
 	}
 	g.Data = _data
 	return nil
+}
+
+func (g *Gototp) LoadFile(filename string) (*models.Key, error) {
+	return g.storage.LoadFile(filename)
 }

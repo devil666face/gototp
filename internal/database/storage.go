@@ -44,8 +44,9 @@ func (s *Storage) saveToFile(filename string, data interface{}, encrypt bool) er
 		if err != nil {
 			return fmt.Errorf("failed encrypt database: %w", err)
 		}
+		buff.Reset()
 		if _, err := buff.Write(cryptbytes); err != nil {
-			return fmt.Errorf("failed encrypt database: %w", err)
+			return fmt.Errorf("failed write bytes: %w", err)
 		}
 	}
 	if err := os.WriteFile(filename, buff.Bytes(), 0644); err != nil {

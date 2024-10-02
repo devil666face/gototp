@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        required: true
+        default: "main"
+
+jobs:
+  build:
+    name: Make build
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Insall system dependences
+        run: sudo apt-get install -y make mingw-w64 zip
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.22"
+
+      - name: Build project
+        run: |
+          make release
+
+      - name: Set tag name
+        run: echo "GITHUB_RELEASE_TAG=$(date +v%m.%d.%H)" >> $GITHUB_ENV
+
+      - name: Create Draft Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.GITHUB_RELEASE_TAG }}
+          draft: true
+          prerelease: false
+
+      - uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/${{github.event.repository.name}}_linux_amd64.tar.gz
+          asset_name: ${{github.event.repository.name}}_linux_amd64.tar.gz
+          asset_content_type: application/zip
+
+      - uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/${{github.event.repository.name}}_darwin_amd64.tar.gz
+          asset_name: ${{github.event.repository.name}}_darwin_amd64.tar.gz
+          asset_content_type: application/zip
+
+      - uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/${{github.event.repository.name}}_windows_amd64.tar.gz
+          asset_name: ${{github.event.repository.name}}_windows_amd64.tar.gz
+          asset_content_type: application/zip
+
+      - uses: eregon/publish-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          release_id: ${{ steps.create_release.outputs.id }}

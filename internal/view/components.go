@@ -68,3 +68,19 @@ func InputForm(
 	)
 	return huh.NewForm(huh.NewGroup(i)).WithTheme(base16)
 }
+
+func PasswordForm(
+	title string,
+	placeholded string,
+	validator func(string) error,
+	value *string,
+) *huh.Form {
+	i := huh.NewInput().
+		Title(title).
+		Value(value).
+		Prompt("> ").
+		Validate(validator).
+		Placeholder(placeholded).
+		EchoMode(huh.EchoModePassword)
+	return huh.NewForm(huh.NewGroup(i)).WithTheme(base16)
+}

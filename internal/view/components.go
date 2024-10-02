@@ -11,7 +11,7 @@ var (
 )
 
 var ErrorFunc func(err error) = func(err error) {
-	fmt.Printf("⚠️  " + err.Error() + "\r\n")
+	fmt.Printf("❗️" + err.Error() + "\r\n")
 }
 
 func Select(

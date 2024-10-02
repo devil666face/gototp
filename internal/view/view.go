@@ -36,7 +36,7 @@ type View struct {
 func New() *View {
 	var passphrase string
 	form := InputForm(
-		"*️⃣  enter your secret", "",
+		"🔐 enter your secret", "",
 		strValidator,
 		&passphrase,
 	)
@@ -60,7 +60,7 @@ func New() *View {
 }
 
 const (
-	_show   = "#️⃣  show"
+	_show   = "📒 show"
 	_code   = "🔑 code"
 	_add    = "🆕 add"
 	_delete = "❌ delete"

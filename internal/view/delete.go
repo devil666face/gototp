@@ -13,6 +13,9 @@ func (v *View) delete() error {
 	if err := v.gototp.Data.Keystore.Delete(id); err != nil {
 		return err
 	}
+	if err := v.gototp.Save(); err != nil {
+		return err
+	}
 	fmt.Printf("❌ %s - deleted\r\n", key.Name)
 	return nil
 }

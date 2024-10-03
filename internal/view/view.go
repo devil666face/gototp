@@ -66,12 +66,14 @@ const (
 	_delete = "❌ delete"
 	_export = "💾 export"
 	_import = "📥 import"
+	_change = "🔄 change"
 )
 
 var mainopts = []huh.Option[string]{
 	huh.NewOption[string](_show, _show),
 	huh.NewOption[string](_code, _code),
 	huh.NewOption[string](_add, _add),
+	huh.NewOption[string](_change, _change),
 	huh.NewOption[string](_delete, _delete),
 	huh.NewOption[string](_export, _export),
 	huh.NewOption[string](_import, _import),
@@ -164,6 +166,13 @@ func (v *View) Run() {
 			}
 		case _add:
 			if err := v.add(); err != nil {
+				if errors.Is(err, huh.ErrUserAborted) {
+					continue
+				}
+				ErrorFunc(err)
+			}
+		case _change:
+			if err := v.change(); err != nil {
 				if errors.Is(err, huh.ErrUserAborted) {
 					continue
 				}

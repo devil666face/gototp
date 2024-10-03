@@ -50,7 +50,7 @@ func Input(
 		Value(value).
 		Prompt("> ").
 		Validate(validator).
-		Placeholder(placeholded)
+		Placeholder(placeholded).Suggestions("123")
 	return i
 }
 

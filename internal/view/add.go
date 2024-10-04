@@ -8,7 +8,10 @@ import (
 )
 
 func (v *View) add() error {
-	var input = models.Input{}
+	var (
+		input       = models.Input{}
+		suggestions = v.gototp.Data.Keystore.Suggestions()
+	)
 
 	form := huh.NewForm(
 		huh.NewGroup(
@@ -16,11 +19,13 @@ func (v *View) add() error {
 				"name ", "",
 				strValidator,
 				&input.Name,
+				suggestions...,
 			),
 			Input(
 				"update period ", "30",
 				numValidator,
 				&input.Period,
+				"30",
 			),
 			Select(
 				"set digits ",

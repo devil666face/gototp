@@ -21,11 +21,13 @@ func (v *View) change() error {
 				"name ", key.Name,
 				strValidator,
 				&input.Name,
+				fmt.Sprint(key.Name),
 			),
 			Input(
 				"update period ", fmt.Sprint(key.Period),
 				numValidator,
 				&input.Period,
+				fmt.Sprint(key.Period),
 			),
 			Select(
 				"set digits ",
@@ -41,6 +43,7 @@ func (v *View) change() error {
 				"secret ", fmt.Sprint(key.Secret),
 				strValidator,
 				&input.Secret,
+				fmt.Sprint(key.Secret),
 			),
 		).WithTheme(base16),
 	)

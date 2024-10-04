@@ -143,6 +143,16 @@ func (v *View) SelectLocalFile(title string, suffix ...string) (string, error) {
 }
 
 func (v *View) Run() {
+	actionHandlers := map[string]func() error{
+		_show:   v.show,
+		_code:   v.code,
+		_add:    v.add,
+		_change: v.change,
+		_delete: v.delete,
+		_import: v.importa,
+		_export: v.export,
+	}
+
 	for {
 		var action string
 		form := SelectForm("🔐 gototp ", mainopts, &action)
@@ -153,47 +163,9 @@ func (v *View) Run() {
 			ErrorFunc(err)
 			continue
 		}
-		switch action {
-		case _show:
-			if err := v.show(); err != nil {
-				ErrorFunc(err)
-				continue
-			}
-		case _code:
-			if err := v.code(); err != nil {
-				ErrorFunc(err)
-				continue
-			}
-		case _add:
-			if err := v.add(); err != nil {
-				if errors.Is(err, huh.ErrUserAborted) {
-					continue
-				}
-				ErrorFunc(err)
-			}
-		case _change:
-			if err := v.change(); err != nil {
-				if errors.Is(err, huh.ErrUserAborted) {
-					continue
-				}
-				ErrorFunc(err)
-			}
-		case _delete:
-			if err := v.delete(); err != nil {
-				if errors.Is(err, huh.ErrUserAborted) {
-					continue
-				}
-				ErrorFunc(err)
-			}
-		case _import:
-			if err := v.importa(); err != nil {
-				if errors.Is(err, huh.ErrUserAborted) {
-					continue
-				}
-				ErrorFunc(err)
-			}
-		case _export:
-			if err := v.export(); err != nil {
+
+		if handler, exists := actionHandlers[action]; exists {
+			if err := handler(); err != nil {
 				if errors.Is(err, huh.ErrUserAborted) {
 					continue
 				}

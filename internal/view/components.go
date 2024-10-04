@@ -44,13 +44,15 @@ func Input(
 	placeholded string,
 	validator func(string) error,
 	value *string,
+	suggestions ...string,
 ) *huh.Input {
 	i := huh.NewInput().
 		Title(title).
 		Value(value).
 		Prompt("> ").
 		Validate(validator).
-		Placeholder(placeholded).Suggestions("123")
+		Placeholder(placeholded).
+		Suggestions(suggestions)
 	return i
 }
 
@@ -59,12 +61,14 @@ func InputForm(
 	placeholded string,
 	validator func(string) error,
 	value *string,
+	suggestions ...string,
 ) *huh.Form {
 	i := Input(
 		title,
 		placeholded,
 		validator,
 		value,
+		suggestions...,
 	)
 	return huh.NewForm(huh.NewGroup(i)).WithTheme(base16)
 }

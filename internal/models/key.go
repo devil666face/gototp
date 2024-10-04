@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pquerna/otp"
@@ -41,11 +42,6 @@ func (k *Keystore) Add(input Input) {
 		input.Digit,
 		input.Algorithm,
 		input.Secret,
-		// name,
-		// period,
-		// digit,
-		// algorithm,
-		// secret,
 	))
 }
 
@@ -55,7 +51,30 @@ func (k *Keystore) Delete(id int) error {
 	}
 	k.Keys = append(k.Keys[:id], k.Keys[id+1:]...)
 	return nil
+}
 
+func (k *Keystore) Suggestions() []string {
+	var (
+		suggestions []string
+		separators  = []string{
+			"@",
+			".",
+			",",
+			"/",
+			`\`,
+			"(",
+			")",
+			"_",
+		}
+	)
+	for _, k := range k.Keys {
+		for _, s := range separators {
+			for i := 0; i <= len([]rune(k.Name)); i++ {
+				suggestions = append(suggestions, strings.SplitAfterN(k.Name, s, i)...)
+			}
+		}
+	}
+	return suggestions
 }
 
 type Key struct {
